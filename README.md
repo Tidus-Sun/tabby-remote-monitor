@@ -1,10 +1,16 @@
 # Tabby Remote Monitor
 
+[English guide](https://github.com/Tidus-Sun/tabby-remote-monitor/blob/main/README.en.md) · 简体中文
+
+A remote monitoring status bar for Linux hosts connected through Tabby's built-in SSH client, similar to MobaXterm remote monitoring. View CPU usage and a 60-second history graph, used / total memory, network transfer speeds and cumulative traffic, and disk usage for each mount point. Hover over an indicator for details. Includes English and Simplified Chinese interfaces, translucent glass effects, color presets and custom colors.
+
+**Install:** open **Settings → Plugins → Available** in Tabby, search for `remote-monitor`, install `tabby-remote-monitor`, and restart Tabby after saving your terminal work. Then connect to a Linux host through built-in SSH. See the [English guide](https://github.com/Tidus-Sun/tabby-remote-monitor/blob/main/README.en.md) for requirements, configuration and migration from a local development installation.
+
 在每个 Tabby SSH 终端窗格底部显示 Linux 主机信息，类似 MobaXterm Remote monitoring。
 
 状态栏以统一的 SVG 图标标识主机、CPU、内存、收发流量与磁盘，并保留主机名和各项数值；CPU 数值旁显示近期走势的迷你曲线，深色底色与细边框标明图表范围。
 
-当前版本 **0.1.14 · 预览版**。支持内置 SSH 连接的 Linux 主机；界面提供简体中文与英文。
+当前版本 **0.1.15 · 预览版**。支持内置 SSH 连接的 Linux 主机；界面提供简体中文与英文。
 
 [npm](https://www.npmjs.com/package/tabby-remote-monitor) · [更新记录](https://github.com/Tidus-Sun/tabby-remote-monitor/blob/main/CHANGELOG.md) · [开发与贡献](https://github.com/Tidus-Sun/tabby-remote-monitor/blob/main/CONTRIBUTING.md) · [发布说明](https://github.com/Tidus-Sun/tabby-remote-monitor/blob/main/docs/RELEASING.md) · [问题反馈](https://github.com/Tidus-Sun/tabby-remote-monitor/issues)
 
@@ -45,6 +51,8 @@
 1. 打开 Tabby 的 **设置 → 插件**，搜索 `remote-monitor`。
 2. 选择包名为 **`tabby-remote-monitor`**、项目链接指向 [Tidus-Sun/tabby-remote-monitor](https://github.com/Tidus-Sun/tabby-remote-monitor) 的插件并安装。
 3. 保存终端中的工作后重启 Tabby，连接 Linux SSH 主机。终端底部会显示监控状态栏，设置页面中会出现 **Remote Monitor**。
+
+如果搜索后仍出现许多其他插件，请继续向下查找 `remote-monitor`；Tabby 按 npm 的搜索评分排序，新插件可能靠近列表底部。已经安装的插件会从“可用”列表隐藏，请在“已安装”页查找。
 
 Tabby 的插件列表来自 npm 搜索，首次发布或更新后可能存在索引延迟。可先查看 [npm 包页面](https://www.npmjs.com/package/tabby-remote-monitor) 确认版本；需要手动安装时，在 Tabby「设置 → 插件 → 打开插件目录」显示的目录中执行：
 
@@ -90,7 +98,7 @@ PowerShell 安装脚本对应参数是 `-PluginsDir "D:\Apps\Tabby\data\plugins"
 
 重复安装会把旧插件及原插件清单备份到 `remote-monitor-backups`，保留其他插件的依赖声明，不改动 SSH 配置。卸载可使用 Tabby 插件管理器；手动卸载则先移除插件目录 `package.json` 中的 `tabby-remote-monitor` 依赖，再移除对应的 `node_modules/tabby-remote-monitor`，最后重启 Tabby。
 
-也可安装本地生成的 npm 包：在 Tabby 插件目录执行 `npm install /absolute/path/tabby-remote-monitor-0.1.14.tgz`，并保留该安装包以供后续依赖整理使用。
+也可安装本地生成的 npm 包：在 Tabby 插件目录执行 `npm install /absolute/path/tabby-remote-monitor-0.1.15.tgz`，并保留该安装包以供后续依赖整理使用。
 
 ## 从源码构建
 
@@ -103,7 +111,7 @@ pnpm check
 pnpm install:local
 ```
 
-`pnpm check` 依次运行类型检查、单元及 SSH/安装集成测试、生产构建。`pnpm watch` 支持持续构建；更新后需要重新安装插件并重启 Tabby。打包使用 `pnpm pack`，生成 `tabby-remote-monitor-0.1.14.tgz`。
+`pnpm check` 依次运行类型检查、单元及 SSH/安装集成测试、生产构建。`pnpm watch` 支持持续构建；更新后需要重新安装插件并重启 Tabby。打包使用 `pnpm pack`，生成 `tabby-remote-monitor-0.1.15.tgz`。
 
 开发依赖由 `pnpm-lock.yaml` 固定，推荐使用 pnpm 复现构建。Angular / Tabby / RxJS 在插件运行时由宿主提供，构建中保持 external；`engines.node >=18` 描述插件运行代码的要求，不表示 Node.js 18 可以运行本仓库的开发测试。
 
