@@ -33,7 +33,7 @@ test('real POSIX shell executes the collector against proc fixtures, with and wi
         }
         const commands = {
             uname: '#!/bin/sh\nprintf "%s\\n" "${TRM_UNAME:-Linux}"\n',
-            df: '#!/bin/sh\n[ "$TRM_DF_FAIL" = 1 ] && exit 1\nexec /usr/bin/cat "$TRM_PROC/df.txt"\n',
+            df: '#!/bin/sh\n[ "$TRM_DF_FAIL" = 1 ] && exit 1\nexec cat "$TRM_PROC/df.txt"\n',
         }
         for (const [name, content] of Object.entries(commands)) await writeFile(path.join(bin, name), content, { mode: 0o755 })
         const run = (disk: boolean, environment: Record<string, string> = {}): string => {
@@ -49,7 +49,8 @@ test('real POSIX shell executes the collector against proc fixtures, with and wi
         }
         const full = parseSnapshot(run(true))
         assert.equal(full.hostname, 'edge-linux')
-        assert.equal(full.disks?.[1].mount, '/mnt/my data')
+        assert.equal(full.diskError, false, 'df fixture must produce valid disk output')
+        assert.deepEqual(full.disks?.map(disk => disk.mount), ['/', '/mnt/my data', '/run'])
         assert.equal(full.networks.eth0.transmitted, 2000)
         assert.equal(parseSnapshot(run(false)).disks, undefined)
         assert.equal(parseSnapshot(run(true, { TRM_DF_FAIL: '1' })).diskError, true)
