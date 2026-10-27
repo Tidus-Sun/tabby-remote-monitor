@@ -1,36 +1,64 @@
-# 发布源码与预览包
+# 发布与维护
 
-目标仓库：`https://github.com/Tidus-Sun/tabby-remote-monitor`。
+- 源码仓库：[Tidus-Sun/tabby-remote-monitor](https://github.com/Tidus-Sun/tabby-remote-monitor)。
+- npm 包：[tabby-remote-monitor](https://www.npmjs.com/package/tabby-remote-monitor)。
+- 首次公开预览版本：`0.1.14`。
 
-## 首次上传源码
+Tabby 的插件管理器通过 npm 发现插件。公开发布的包需要保留 `tabby-plugin` 关键词；GitHub 源码和 Release 附件不能代替 npm 发布。参考 [Tabby 插件开发说明](https://github.com/Eugeny/tabby/blob/master/HACKING.md#plugins)。
 
-1. 在 GitHub 的 `Tidus-Sun` 账号下创建名为 `tabby-remote-monitor` 的空仓库。需要公开源码时选择 Public；不要额外初始化 README、许可证或 `.gitignore`，这些文件已经在本地提交中。
-2. 在项目目录确认 `git status`、`git log -1` 和 `git remote -v`。本地默认分支为 `main`，`origin` 指向上述仓库。
-3. 使用已配置的 GitHub Git 凭据执行 `git push -u origin main`。浏览器已登录不等同于命令行 Git 已完成认证；不要将 Token 写入远程 URL、源码或 `.npmrc`。
-4. 查看 GitHub Actions 的 CI 结果。首次实际运行通过前，不宣称 Linux / macOS 的远程 CI 已验证。
+## 准备版本
 
-## 准备一个版本
+使用 `.node-version` 和 `packageManager` 指定的开发环境。确认 `package.json` 版本号、README 中的安装包文件名和更新记录一致，将本次发布内容从 `Unreleased` 归入版本条目并记录日期。已发布的 npm 版本不能覆盖，后续更新必须使用新版本号。
 
 ```sh
 pnpm install --frozen-lockfile
 pnpm check
 pnpm exec playwright install chromium
 pnpm test:browser
-pnpm pack
 ```
 
-检查以下内容：
+将变更提交并推送到 `main`，确认当前提交的 Windows、macOS、Linux CI 全部成功。Linux CI 还会执行浏览器与 Angular 设置测试，生成安装包和截图。CI 当前不会自动上传 npm 或创建 GitHub Release。
 
-- `package.json` 版本号、README 安装包文件名和更新记录一致。
-- `Unreleased` 中准备发布的条目已归入该版本，并记录实际发布日期。
-- 截图和说明对应当前界面，所有测试跳过项及兼容性范围如实说明。
-- 安装包包含 `dist/index.js`、许可证及安装脚本，不包含开发缓存、真实 SSH 配置或凭据。
-- Windows 上补测 Tabby 的 russh 后端；目标 Linux 主机实际连接验证按发行环境执行。
+发布前检查：
 
-## 发布 GitHub Release
+- 包含 `dist/index.js`、README、许可证、截图和本地安装脚本。
+- 不包含 `node_modules`、开发缓存、真实 SSH 配置或凭据。
+- README 的截图和项目链接可在 GitHub 与 npm 页面访问。
+- 如有运行时代码变更，验证实际 Tabby SSH 连接；本机 Tabby russh 的可选测试不由普通 CI 代替。
 
-首次公开分发建议将 `v0.1.14` 标为预览版。源码归档和安装包是两种内容：GitHub 自动生成的 Source code 归档没有 `dist`，使用者需要自行构建；附加的 `.tgz` 包经过 `pnpm pack` 构建，可以解压后运行包内的安装脚本。
+## 登录 npm 与检查包
 
-创建并推送版本标签、发布 Release、上传附件属于实际发布操作，在决定发布时执行。CI 当前仅生成可下载的工作流产物，不会自动发布 Release 或 npm。
+维护者需要自己的 npm 账号和发布权限，交互式发布按 npm 提示完成身份验证。认证只交给 npm CLI / 官方网站，不把令牌写入仓库。
 
-源码上传 GitHub 与上架 Tabby 插件市场是独立步骤。本项目尚未发布到 npm；不要在未确认 npm 包名归属和发布账号前执行 `pnpm publish`。
+```sh
+npm login --registry=https://registry.npmjs.org/
+npm whoami --registry=https://registry.npmjs.org/
+npm publish --dry-run --access public --registry=https://registry.npmjs.org/
+```
+
+`--dry-run` 只预检。项目的 `prepack` 会执行生产构建；`publishConfig` 固定公开 npm registry、公开访问和 `latest` 标签。参考 [npm 发布流程](https://docs.npmjs.com/creating-and-publishing-unscoped-public-packages/)。
+
+## 发布已检查的安装包
+
+```sh
+npm pack
+npm publish ./tabby-remote-monitor-0.1.14.tgz --access public --tag latest --registry=https://registry.npmjs.org/
+```
+
+将示例中的版本号替换为本次版本。发布生成并检查过的同一个 `.tgz`，保存其完整性摘要用于发布后比对。
+
+## 发布后验证
+
+```sh
+npm view tabby-remote-monitor version dist-tags dist.integrity --registry=https://registry.npmjs.org/
+```
+
+确认 `latest` 指向本次版本，registry 中的完整性摘要与发布包一致。在独立的空目录中执行 `npm install tabby-remote-monitor@0.1.14 --registry=https://registry.npmjs.org/`，检查包入口和必需文件。之后在干净的 Tabby 配置中通过插件管理器安装、重启并验证 Linux SSH 监控。
+
+Tabby 搜索 `remote-monitor` 后，应显示这个包及正确的项目地址。npm 搜索索引可能延迟；先确认包页面和直接安装可用，再等待索引更新，不通过重复发布同一版本解决搜索延迟。旧本地安装的迁移步骤见 [README](../README.md#从插件市场安装)。
+
+## 可选的 GitHub Release 与自动发布
+
+需要 GitHub Release 时，为已发布提交创建对应 `v版本号` 标签，填写更新说明并附加同一 `.tgz`。0.1.x 可标为预览版。GitHub 自动生成的源码归档没有 `dist`，使用者需要构建；npm 安装包已包含生产构建。
+
+后续可单独配置 [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/)，绑定本仓库的发布工作流，再使用 GitHub Actions 的 OIDC 身份发布。当前 CI 仅测试和打包。

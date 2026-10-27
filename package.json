@@ -20,6 +20,11 @@
   },
   "author": "tabby-remote-monitor contributors",
   "license": "MIT",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public",
+    "tag": "latest"
+  },
   "files": [
     "dist",
     "scripts/install-local.mjs",

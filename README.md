@@ -6,22 +6,22 @@
 
 当前版本 **0.1.14 · 预览版**。支持内置 SSH 连接的 Linux 主机；界面提供简体中文与英文。
 
-[更新记录](CHANGELOG.md) · [开发与贡献](CONTRIBUTING.md) · [发布说明](docs/RELEASING.md) · [问题反馈](https://github.com/Tidus-Sun/tabby-remote-monitor/issues)
+[npm](https://www.npmjs.com/package/tabby-remote-monitor) · [更新记录](https://github.com/Tidus-Sun/tabby-remote-monitor/blob/main/CHANGELOG.md) · [开发与贡献](https://github.com/Tidus-Sun/tabby-remote-monitor/blob/main/CONTRIBUTING.md) · [发布说明](https://github.com/Tidus-Sun/tabby-remote-monitor/blob/main/docs/RELEASING.md) · [问题反馈](https://github.com/Tidus-Sun/tabby-remote-monitor/issues)
 
 ## 界面预览
 
 以下图片由真实插件组件配合本地示例数据生成，终端背景为测试展示页，不包含真实服务器或账号信息。
 
-![CPU 最近 60 秒历史曲线](docs/images/cpu-history.png)
+![CPU 最近 60 秒历史曲线](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/cpu-history.png)
 
 <details>
 <summary>磁盘、内存、网络与外观设置截图</summary>
 
-![磁盘挂载点与容量](docs/images/disk-details.png)
-![内存详情](docs/images/memory-details.png)
-![所有网络设备的累计流量](docs/images/network-details.png)
-![深色磨玻璃外观设置](docs/images/appearance-dark.png)
-![浅色磨玻璃外观设置](docs/images/appearance-light.png)
+![磁盘挂载点与容量](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/disk-details.png)
+![内存详情](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/memory-details.png)
+![所有网络设备的累计流量](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/network-details.png)
+![深色磨玻璃外观设置](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/appearance-dark.png)
+![浅色磨玻璃外观设置](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/appearance-light.png)
 
 </details>
 
@@ -40,7 +40,21 @@
 - 暂停 / 恢复、立即刷新、可选的后台标签页暂停、设置实时生效。需要减少后台采集时，可启用“暂停不可见标签页的采集”，此时切回标签页会留下暂停期间的空档。
 - 失败后退避重试，断线后清空旧主机数据，重连重新采样；关闭窗格取消采集并回收通道与订阅。
 
-## 安装到本机 Tabby
+## 从插件市场安装
+
+1. 打开 Tabby 的 **设置 → 插件**，搜索 `remote-monitor`。
+2. 选择包名为 **`tabby-remote-monitor`**、项目链接指向 [Tidus-Sun/tabby-remote-monitor](https://github.com/Tidus-Sun/tabby-remote-monitor) 的插件并安装。
+3. 保存终端中的工作后重启 Tabby，连接 Linux SSH 主机。终端底部会显示监控状态栏，设置页面中会出现 **Remote Monitor**。
+
+Tabby 的插件列表来自 npm 搜索，首次发布或更新后可能存在索引延迟。可先查看 [npm 包页面](https://www.npmjs.com/package/tabby-remote-monitor) 确认版本；需要手动安装时，在 Tabby「设置 → 插件 → 打开插件目录」显示的目录中执行：
+
+```sh
+npm install --save tabby-remote-monitor@latest --registry=https://registry.npmjs.org/
+```
+
+**从本地开发版迁移：** 如果此前运行过本项目的安装脚本，插件依赖登记为 `file:` 本地目录。请在上述 Tabby 插件目录执行同一条 `npm install` 命令，将本地依赖替换为 npm 版本，之后重启 Tabby。原有监控配置保留；旧的 `remote-monitor-local` 与备份目录可先保留。以后可通过插件管理器更新，不必再次运行本地安装脚本。
+
+## 从源码或安装包安装
 
 源码仓库不提交 `dist`，克隆后请先完成下方的“从源码构建”。已有包含 `dist/index.js` 的安装包时，可解压到独立目录并直接运行其中的安装脚本，无需构建依赖。Windows 可在项目或解压后的包目录执行（不需要 Node.js）：
 
@@ -74,7 +88,7 @@ PowerShell 安装脚本对应参数是 `-PluginsDir "D:\Apps\Tabby\data\plugins"
 
 安装脚本将本插件复制到 `node_modules/tabby-remote-monitor`，同时在 `remote-monitor-local` 保存独立的本地安装源，并将它以 `file:` 依赖登记到插件目录的 `package.json`。这样 Tabby 安装或更新其他插件时不会把它当作多余目录清理；请保留 `remote-monitor-local`。下次插件管理器操作时会自动同步锁文件。
 
-重复安装会把旧插件及原插件清单备份到 `remote-monitor-backups`，保留其他插件的依赖声明，不改动 SSH 配置。卸载可使用 Tabby 插件管理器；手动卸载则先移除插件目录 `package.json` 中的 `tabby-remote-monitor` 依赖，再移除对应的 `node_modules/tabby-remote-monitor`，最后重启 Tabby。插件尚未发布到 npm；不要通过搜索插件市场安装同名未知包。
+重复安装会把旧插件及原插件清单备份到 `remote-monitor-backups`，保留其他插件的依赖声明，不改动 SSH 配置。卸载可使用 Tabby 插件管理器；手动卸载则先移除插件目录 `package.json` 中的 `tabby-remote-monitor` 依赖，再移除对应的 `node_modules/tabby-remote-monitor`，最后重启 Tabby。
 
 也可安装本地生成的 npm 包：在 Tabby 插件目录执行 `npm install /absolute/path/tabby-remote-monitor-0.1.14.tgz`，并保留该安装包以供后续依赖整理使用。
 
