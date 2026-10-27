@@ -1,0 +1,22 @@
+name: Bug report / 问题反馈
+description: Report a reproducible problem / 提交可复现的问题
+body:
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment / 环境
+      description: Plugin and Tabby versions, local OS, remote Linux distribution.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps and behavior / 复现步骤与表现
+      description: Describe what you expected and what actually happened.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or logs / 截图或日志
+      description: Remove credentials, real host addresses and other private data before sharing.

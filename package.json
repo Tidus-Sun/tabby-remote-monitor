@@ -1,0 +1,76 @@
+{
+  "name": "tabby-remote-monitor",
+  "version": "0.1.14",
+  "description": "Per-terminal Linux remote monitoring for Tabby: CPU, memory, network and mounts.",
+  "keywords": [
+    "tabby-plugin",
+    "ssh",
+    "linux",
+    "monitor",
+    "statusbar"
+  ],
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tidus-Sun/tabby-remote-monitor.git"
+  },
+  "homepage": "https://github.com/Tidus-Sun/tabby-remote-monitor#readme",
+  "bugs": {
+    "url": "https://github.com/Tidus-Sun/tabby-remote-monitor/issues"
+  },
+  "author": "tabby-remote-monitor contributors",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "scripts/install-local.mjs",
+    "scripts/install-local.ps1",
+    "README.md",
+    "CONTRIBUTING.md",
+    "CHANGELOG.md",
+    "docs",
+    "LICENSE"
+  ],
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "build": "webpack --mode production",
+    "watch": "webpack --mode development --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "test:browser": "node scripts/browser-smoke.cjs && node scripts/settings-smoke.cjs",
+    "screenshots": "node scripts/update-screenshots.cjs",
+    "check": "tsc --noEmit && tsx --test test/*.test.ts && webpack --mode production",
+    "install:local": "node scripts/install-local.mjs",
+    "prepack": "webpack --mode production"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@angular/animations": "15.2.10",
+    "@angular/common": "15.2.10",
+    "@angular/compiler": "15.2.10",
+    "@angular/core": "15.2.10",
+    "@angular/forms": "15.2.10",
+    "@angular/platform-browser": "15.2.10",
+    "@angular/platform-browser-dynamic": "15.2.10",
+    "@npmcli/arborist": "9.9.1",
+    "@types/node": "^20.17.0",
+    "clone-deep": "4.0.1",
+    "deep-equal": "2.2.3",
+    "js-yaml": "4.1.1",
+    "playwright": "1.62.1",
+    "reflect-metadata": "0.1.14",
+    "rxjs": "7.8.2",
+    "ssh2": "^1.17.0",
+    "tabby-core": "1.0.231-nightly.0",
+    "tabby-settings": "1.0.231-nightly.0",
+    "tabby-terminal": "1.0.231-nightly.0",
+    "ts-loader": "^9.5.2",
+    "tslib": "2.8.1",
+    "tsx": "^4.20.6",
+    "typescript": "5.6.3",
+    "webpack": "^5.99.9",
+    "webpack-cli": "^5.1.4",
+    "zone.js": "0.13.3"
+  }
+}

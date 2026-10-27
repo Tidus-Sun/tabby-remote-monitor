@@ -1,0 +1,10 @@
+autoInstallPeers: false
+# Tabby's settings/terminal declarations reference its host-provided UI library.
+# The plugin keeps it external; the browser harness supplies isolated host stubs.
+peerDependencyRules:
+  ignoreMissing:
+    - '@ng-bootstrap/ng-bootstrap'
+allowBuilds:
+  esbuild: true
+  ssh2: false
+  cpu-features: false
