@@ -1,5 +1,7 @@
 // Small inline SVGs keep icons consistent without depending on Tabby's icon font.
 const paths = {
+    uptime: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    connections: '<rect x="8" y="2" width="8" height="6" rx="1"/><rect x="2" y="16" width="8" height="6" rx="1"/><rect x="14" y="16" width="8" height="6" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/>',
     host: '<rect x="4" y="3" width="16" height="7" rx="2"/><rect x="4" y="14" width="16" height="7" rx="2"/><path d="M8 6.5h.01M8 17.5h.01M12 6.5h4M12 17.5h4"/>',
     cpu: '<rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 3v3m6-3v3M9 18v3m6-3v3M3 9h3m-3 6h3m12-6h3m-3 6h3"/>',
     memory: '<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M6 17v3m4-3v3m4-3v3m4-3v3M7 9v4m5-4v4m5-4v4"/>',

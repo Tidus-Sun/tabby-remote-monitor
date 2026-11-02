@@ -11,9 +11,11 @@ export interface MonitorOptions extends AppearanceOptions {
     pauseWhenHidden: boolean
     interfaces: string
     showHostname: boolean
+    showUptime: boolean
     showCPU: boolean
     showMemory: boolean
     showNetwork: boolean
+    showConnections: boolean
     showDisks: boolean
     showVirtualFilesystems: boolean
 }
@@ -28,9 +30,11 @@ export const DEFAULT_OPTIONS: MonitorOptions = {
     pauseWhenHidden: false,
     interfaces: '',
     showHostname: true,
+    showUptime: true,
     showCPU: true,
     showMemory: true,
     showNetwork: true,
+    showConnections: true,
     showDisks: true,
     showVirtualFilesystems: false,
 }

@@ -2,15 +2,15 @@
 
 [English guide](https://github.com/Tidus-Sun/tabby-remote-monitor/blob/main/README.en.md) · 简体中文
 
-A remote monitoring status bar for Linux hosts connected through Tabby's built-in SSH client, similar to MobaXterm remote monitoring. View CPU usage and a 60-second history graph, used / total memory, network transfer speeds and cumulative traffic, and disk usage for each mount point. Hover over an indicator for details. Includes English and Simplified Chinese interfaces, translucent glass effects, color presets and custom colors.
+A remote monitoring status bar for Linux hosts connected through Tabby's built-in SSH client, similar to MobaXterm remote monitoring. View system uptime, CPU usage and a 60-second history graph, used / total memory, network transfer speeds and cumulative traffic, TCP connections, and disk usage for each mount point. Hover over an indicator for details. Includes English and Simplified Chinese interfaces, translucent glass effects, color presets and custom colors.
 
 **Install:** open **Settings → Plugins → Available** in Tabby, search for `remote-monitor`, install `tabby-remote-monitor`, and restart Tabby after saving your terminal work. Then connect to a Linux host through built-in SSH. See the [English guide](https://github.com/Tidus-Sun/tabby-remote-monitor/blob/main/README.en.md) for requirements, configuration and migration from a local development installation.
 
 在每个 Tabby SSH 终端窗格底部显示 Linux 主机信息，类似 MobaXterm Remote monitoring。
 
-状态栏以统一的 SVG 图标标识主机、CPU、内存、收发流量与磁盘，并保留主机名和各项数值；CPU 数值旁显示近期走势的迷你曲线，深色底色与细边框标明图表范围。
+状态栏以统一的 SVG 图标标识主机、运行时长、CPU、内存、收发流量、TCP 连接与磁盘，并保留主机名和各项数值；CPU 数值旁显示近期走势的迷你曲线，深色底色与细边框标明图表范围。
 
-当前版本 **0.1.15 · 预览版**。支持内置 SSH 连接的 Linux 主机；界面提供简体中文与英文。
+当前版本 **0.1.16 · 预览版**。支持内置 SSH 连接的 Linux 主机；界面提供简体中文与英文。
 
 [npm](https://www.npmjs.com/package/tabby-remote-monitor) · [更新记录](https://github.com/Tidus-Sun/tabby-remote-monitor/blob/main/CHANGELOG.md) · [开发与贡献](https://github.com/Tidus-Sun/tabby-remote-monitor/blob/main/CONTRIBUTING.md) · [发布说明](https://github.com/Tidus-Sun/tabby-remote-monitor/blob/main/docs/RELEASING.md) · [问题反馈](https://github.com/Tidus-Sun/tabby-remote-monitor/issues)
 
@@ -21,11 +21,13 @@ A remote monitoring status bar for Linux hosts connected through Tabby's built-i
 ![CPU 最近 60 秒历史曲线](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/cpu-history.png)
 
 <details>
-<summary>磁盘、内存、网络与外观设置截图</summary>
+<summary>运行时长、连接、磁盘、内存、网络与外观设置截图</summary>
 
 ![磁盘挂载点与容量](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/disk-details.png)
 ![内存详情](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/memory-details.png)
 ![所有网络设备的累计流量](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/network-details.png)
+![系统运行时长与启动时间](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/uptime-details.png)
+![TCP 连接状态与地址](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/connections-details.png)
 ![深色磨玻璃外观设置](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/appearance-dark.png)
 ![浅色磨玻璃外观设置](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/appearance-light.png)
 
@@ -36,6 +38,9 @@ A remote monitoring status bar for Linux hosts connected through Tabby's built-i
 - 外观支持半透明磨玻璃、深蓝 / 青绿 / 紫色 / 石墨 / 浅色五套配色、自定义背景色和强调色；状态栏与详情面板分别调节不透明度，模糊程度可调。文字与强调色根据背景明暗调整，CPU 曲线保留深色底色。在“设置 → Remote Monitor → 外观”中有使用示例数据的实时预览，指向图标可查看面板；拖动滑块时预览，松开后应用，支持恢复默认外观。
 - 支持简体中文与英文，默认跟随 Tabby 界面语言；可在“设置 → Remote Monitor → 语言”中固定为简体中文或 English。状态栏、悬浮面板、设置和插件错误提示随选择即时更新，不重置 CPU 历史或重新采集；暂不支持的语言回退为英文。
 - Hostname、CPU 使用率、内存已用 / 总量、网卡接收 / 发送速率。
+- 系统运行时长独立标签：时钟图标旁显示天 / 时 / 分，悬浮查看精确到秒的时长与系统启动时间（按本地时区显示）。面板实时状态下每秒计时，收到远端采样后校准，不增加 SSH 采样频率；暂停、断线或采集失败时停止递增并标记上次采样。
+- 连接详情面板最高 380px，并按窗格剩余高度缩小；连接较多时纵向滚动查看，采样刷新后保留阅读位置。
+- Connections 网络连接标签：显示已建立的 TCP 连接数，悬浮查看全部 TCP 套接字、监听数、各状态数量，以及 IPv4 / IPv6 的本地地址、远端地址与端口。优先使用远端 `ss`，未安装时使用 `netstat`；无需 root 或额外服务。统计当前网络命名空间内的连接（包含 SSH 与回环），明细最多显示 100 条并优先保留已建立连接，汇总不截断。工具缺失或读取失败时显示 `—`，其他指标照常采集。两个新标签均可在设置的“显示内容”中关闭；关闭 TCP 连接标签也会停止该项采集。
 - 鼠标指向内存图标区域，即在其上方显示内存详情：已用 / 总量、可用、空闲、缓冲区、文件缓存、可回收 Slab、共享内存及 Swap 已用 / 总量与可用容量。状态栏不再显示内存百分比；详情缺失项显示 `—`，未启用 Swap 时明确标注。
 - 每个可见磁盘挂载点独立显示一个标签，包含磁盘图标、挂载路径与使用率；标签较多时可横向滚动。鼠标指向任意挂载点，即在该标签上方显示完整磁盘详情：所有挂载点、设备、文件系统、已用 / 总量、使用率分列对齐，数字右对齐；同时保留 Swap 与系统负载。虚拟文件系统仍按原设置筛选。
 - 鼠标指向 CPU 图标区域即可查看类似任务管理器的最近 60 秒使用率图表，含 0–100% 网格、当前值、有效采样平均值和峰值。数据从当前 SSH 连接开始积累，默认在后台继续采集，切换标签页、普通刷新与正常采样延迟不会人为打断曲线。短暂失败恢复后用前后两次有效计数器计算期间平均使用率，不补造中间采样点；手动暂停仍保留空档，重连后重新收集。历史不保存到磁盘。
@@ -98,7 +103,7 @@ PowerShell 安装脚本对应参数是 `-PluginsDir "D:\Apps\Tabby\data\plugins"
 
 重复安装会把旧插件及原插件清单备份到 `remote-monitor-backups`，保留其他插件的依赖声明，不改动 SSH 配置。卸载可使用 Tabby 插件管理器；手动卸载则先移除插件目录 `package.json` 中的 `tabby-remote-monitor` 依赖，再移除对应的 `node_modules/tabby-remote-monitor`，最后重启 Tabby。
 
-也可安装本地生成的 npm 包：在 Tabby 插件目录执行 `npm install /absolute/path/tabby-remote-monitor-0.1.15.tgz`，并保留该安装包以供后续依赖整理使用。
+也可安装本地生成的 npm 包：在 Tabby 插件目录执行 `npm install /absolute/path/tabby-remote-monitor-0.1.16.tgz`，并保留该安装包以供后续依赖整理使用。
 
 ## 从源码构建
 
@@ -111,7 +116,7 @@ pnpm check
 pnpm install:local
 ```
 
-`pnpm check` 依次运行类型检查、单元及 SSH/安装集成测试、生产构建。`pnpm watch` 支持持续构建；更新后需要重新安装插件并重启 Tabby。打包使用 `pnpm pack`，生成 `tabby-remote-monitor-0.1.15.tgz`。
+`pnpm check` 依次运行类型检查、单元及 SSH/安装集成测试、生产构建。`pnpm watch` 支持持续构建；更新后需要重新安装插件并重启 Tabby。打包使用 `pnpm pack`，生成 `tabby-remote-monitor-0.1.16.tgz`。
 
 开发依赖由 `pnpm-lock.yaml` 固定，推荐使用 pnpm 复现构建。Angular / Tabby / RxJS 在插件运行时由宿主提供，构建中保持 external；`engines.node >=18` 描述插件运行代码的要求，不表示 Node.js 18 可以运行本仓库的开发测试。
 
@@ -129,7 +134,7 @@ Linux / macOS 开发时也可设置 `TABBY_PLUGINS` 为本项目的绝对路径�
 ## 指标口径与远端要求
 
 - 仅支持 **Tabby 内置 SSH 连接**，不解析本地终端里手动运行的 `ssh`，也不监控本地 Linux / WSL。
-- 远端必须是 Linux，允许 SSH exec，提供 `sh`、`uname`、`cat`、`head`、支持 `-kP -l` 的 `df`，且当前用户可读取 `/proc`。无需 root、sudo、Python、额外代理或写入远端文件。
+- 远端必须是 Linux，允许 SSH exec，提供 `sh`、`uname`、`cat`、`head`、`awk`、支持 `-kP -l` 的 `df`，且当前用户可读取 `/proc`。TCP 连接详情还需 `ss`（iproute2）或支持 `-antW` 的 `netstat`（`-W` 避免截断 IPv6 地址）。无需 root、sudo、Python、额外代理或写入远端文件。
 - 复用 Tabby 已认证的连接，继承其主机密钥验证、跳板机和代理设置，不读取密码或私钥。监控只打开独立的无 PTY exec 通道，不会把命令写入交互 shell。
 - CPU：对 `/proc/stat` 的前 8 项计数做差，`idle + iowait` 视为空闲，guest 不重复计算。第一帧及计数器重置后显示 `—`。
 - 内存：`MemTotal - MemAvailable`；旧内核无 `MemAvailable` 时使用 free、buffers、cache、可回收 slab 与 shmem 估算。详情复用同次 `/proc/meminfo` 采样，不增加请求；缓存和共享等项目可能重叠，不可直接相加。字段含义参考 [Linux 内核 meminfo 文档](https://docs.kernel.org/filesystems/proc.html#meminfo)。
@@ -164,9 +169,11 @@ remoteMonitor:
   pauseWhenHidden: false      # 后台继续采集，保持 CPU 历史连续
   interfaces: ''              # 例如 eth0 或 eth0,eth1
   showHostname: true
+  showUptime: true
   showCPU: true
   showMemory: true
   showNetwork: true
+  showConnections: true
   showDisks: true
   showVirtualFilesystems: false
 ```

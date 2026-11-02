@@ -8,6 +8,7 @@ const previous = parseSnapshot(sample())
 const current = parseSnapshot(sample({ time: 102, cpu: '115 10 32 963 20 10 10 40 50 10', rx: 5034165, tx: 381904 }))
 const metrics = calculateMetrics(current, previous)
 metrics.hostname = 'production-01'
+metrics.uptime = 12 * 86400 + 3 * 3600 + 42 * 60 + 8
 metrics.memory = {
     total: 16 * 1024 ** 3, used: 6.4 * 1024 ** 3, percent: 40,
     available: 9.6 * 1024 ** 3, availableEstimated: false, free: 5.6 * 1024 ** 3,
@@ -26,6 +27,7 @@ metrics.disks = [
     { device: '/dev/sdc1', mount: '/mnt/backups', filesystem: 'ext4', total: 2 * 1024 ** 4, used: 512 * 1024 ** 3, available: 1433.6 * 1024 ** 3, percent: 27 },
 ]
 const now = Date.now()
+metrics.bootTime = now - metrics.uptime * 1000
 // Synthetic history is used only in this preview, never in the plugin.
 const cpuValues = [12, 15, 13, 18, 27, 43, 38, 22, 16, 18, 21, 65, 82, 74, 48, 32, 25, 28, 34, 31, 23, 17, 20, 37, 55, 46, 33, 25, 22, 19, 18.5]
 metrics.cpuPercent = cpuValues[cpuValues.length - 1]

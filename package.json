@@ -1,7 +1,7 @@
 {
   "name": "tabby-remote-monitor",
-  "version": "0.1.15",
-  "description": "Remote monitoring status bar for Tabby SSH sessions: CPU history, memory, network speed and disk usage.",
+  "version": "0.1.16",
+  "description": "Remote monitoring status bar for Tabby SSH: uptime, CPU history, memory, network speed, TCP connections and disk usage.",
   "keywords": [
     "tabby-plugin",
     "remote-monitor",
@@ -14,7 +14,9 @@
     "memory",
     "network",
     "disk",
-    "statusbar"
+    "statusbar",
+    "uptime",
+    "tcp-connections"
   ],
   "main": "dist/index.js",
   "repository": {

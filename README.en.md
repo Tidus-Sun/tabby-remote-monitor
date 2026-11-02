@@ -4,7 +4,7 @@ English · [简体中文](https://github.com/Tidus-Sun/tabby-remote-monitor/blob
 
 A remote monitoring status bar for Linux hosts connected through Tabby's built-in SSH client, similar to MobaXterm remote monitoring. Each SSH terminal pane has its own system metrics and hover panels.
 
-Current version: **0.1.15 · Preview**. The interface supports **English and Simplified Chinese**, with automatic language selection based on Tabby.
+Current version: **0.1.16 · Preview**. The interface supports **English and Simplified Chinese**, with automatic language selection based on Tabby.
 
 [npm package](https://www.npmjs.com/package/tabby-remote-monitor) · [Source](https://github.com/Tidus-Sun/tabby-remote-monitor) · [Changelog](https://github.com/Tidus-Sun/tabby-remote-monitor/blob/main/CHANGELOG.md) · [Report an issue](https://github.com/Tidus-Sun/tabby-remote-monitor/issues)
 
@@ -15,11 +15,13 @@ These screenshots use the actual plugin components with fixture data and a demon
 ![CPU usage history for the last 60 seconds](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/cpu-history.png)
 
 <details>
-<summary>Disk, memory, network and appearance panels</summary>
+<summary>Uptime, connections, disk, memory, network and appearance panels</summary>
 
 ![Disk mount points and usage](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/disk-details.png)
 ![Memory details](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/memory-details.png)
 ![Cumulative traffic for all network interfaces](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/network-details.png)
+![System uptime and boot time](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/uptime-details.png)
+![TCP connection states and addresses](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/connections-details.png)
 ![Dark glass appearance settings](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/appearance-dark.png)
 ![Light appearance settings](https://raw.githubusercontent.com/Tidus-Sun/tabby-remote-monitor/main/docs/images/appearance-light.png)
 
@@ -28,6 +30,9 @@ These screenshots use the actual plugin components with fixture data and a demon
 ## Features
 
 - **Host and CPU:** hostname, current CPU usage, an inline graph and a hover chart covering the last 60 seconds, with average and peak usage.
+- **Uptime:** a clock indicator shows days, hours and minutes since system boot. Hover for seconds and the kernel boot timestamp in your local time zone. While live, the panel ticks locally every second and recalibrates on remote samples, without additional SSH requests. Paused, disconnected or failed readings stop ticking and remain marked as previous samples.
+- **Scrollable connections:** the connection panel is capped at 380px and shrinks to fit the terminal pane. Scroll vertically through longer lists; sample updates preserve your reading position.
+- **Connections:** the indicator counts established TCP sockets. Hover for all-state counts, listening sockets, and IPv4 / IPv6 local and remote addresses and ports. Uses `ss` or, if absent, `netstat`, without root or a remote agent. Counts cover the current network namespace, including SSH and loopback. Details are capped at 100 entries, prioritizing established connections; totals cover all sockets. Missing tools or failed reads show `—` without interrupting other metrics. Both new indicators can be hidden in settings; hiding Connections also disables socket collection.
 - **Memory:** used / total RAM, plus available and free memory, buffers, cache, reclaimable slab, shared memory and swap in the details panel.
 - **Network:** receive and transmit rates for the selected interfaces. Hover to inspect cumulative traffic for every interface, including loopback and virtual devices.
 - **Disks:** a separate indicator for each visible mount point. Hover for aligned columns showing mount paths, devices, filesystems, capacity and usage. Virtual filesystems can be included in settings.
@@ -59,7 +64,7 @@ The repository's local installer registers a `file:` dependency. Run the same np
 ## Requirements and metrics
 
 - **Connection:** Tabby's built-in SSH client. Local Linux / WSL terminals and an `ssh` command typed inside a local terminal are not monitored.
-- **Remote host:** Linux with SSH exec enabled, a readable `/proc`, and `sh`, `uname`, `cat`, `head` and a `df` implementation supporting `-kP -l`. No root access, sudo, Python or remote agent is required.
+- **Remote host:** Linux with SSH exec enabled, a readable `/proc`, and `sh`, `uname`, `cat`, `head`, `awk` and a `df` implementation supporting `-kP -l`. TCP details additionally use `ss` (iproute2) or `netstat` supporting `-antW` (`-W` prevents truncated IPv6 addresses). No root access, sudo, Python or remote agent is required.
 - **Authentication:** the plugin reuses the authenticated SSH connection, including Tabby's host-key checks, jump hosts and proxies. It does not read passwords or private keys. Collection uses separate exec channels and does not type commands into the interactive shell or write remote files.
 - **CPU:** computed from changes in `/proc/stat`. The first sample and counter resets show no percentage until a comparison is available. Background sampling is enabled by default to preserve history across tab switches.
 - **Memory:** used RAM is total minus available RAM. Older Linux kernels use an estimate when `MemAvailable` is absent. Some detail fields overlap and should not be added together.
@@ -90,7 +95,7 @@ pnpm test:browser
 pnpm pack
 ```
 
-`pnpm check` runs type checking, unit and available SSH / installer integration tests, then the production build. `pnpm pack` produces **`tabby-remote-monitor-0.1.15.tgz`**. The source repository does not include `dist`; the npm package includes the production bundle.
+`pnpm check` runs type checking, unit and available SSH / installer integration tests, then the production build. `pnpm pack` produces **`tabby-remote-monitor-0.1.16.tgz`**. The source repository does not include `dist`; the npm package includes the production bundle.
 
 To install a development build locally:
 

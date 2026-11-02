@@ -1,4 +1,6 @@
 import { LocalizedError } from './i18n'
+import { parseConnections } from './connections'
+import type { ConnectionSummary } from './connections'
 
 export interface NetworkCounters { received: number; transmitted: number }
 export interface MemoryUsage {
@@ -28,6 +30,8 @@ export interface DiskUsage {
 export interface Snapshot {
     hostname: string
     uptime: number
+    bootTime?: number
+    connections?: ConnectionSummary
     cpu: { total: number; idle: number }
     memory: MemoryUsage
     networks: Record<string, NetworkCounters>
@@ -68,6 +72,7 @@ export function parseSnapshot (output: string): Snapshot {
         } else if (section && line.trim()) sections[section].push(line)
     }
     const uptime = Number(sections.UPTIME?.[0]?.split(/\s+/)[0])
+    const bootTime = Number(sections.BOOT?.[0])
     const cpuLine = sections.CPU?.[0]?.trim().split(/\s+/) ?? []
     // guest/guest_nice are already included in user/nice by Linux.
     const cpu = cpuLine.slice(1, 9).map(Number)
@@ -124,6 +129,8 @@ export function parseSnapshot (output: string): Snapshot {
     })
     return {
         hostname: sections.HOST?.[0]?.trim() || 'Linux', uptime,
+        bootTime: Number.isFinite(bootTime) && bootTime > 0 && bootTime <= 8640000000000 ? bootTime * 1000 : undefined,
+        connections: parseConnections(sections.CONNECTIONS),
         cpu: { total: cpu.reduce((a, b) => a + b, 0), idle: cpu[3] + (cpu[4] ?? 0) },
         memory: {
             total, used, percent: clampPercent(used / total * 100), available, availableEstimated: mem.MemAvailable === undefined,

@@ -57,9 +57,11 @@ export class RemoteMonitorConfigProvider extends ConfigProvider {
       <h4>{{ t('settings.display') }}</h4>
       <div class="display-options">
         <label><input type="checkbox" [(ngModel)]="options.showHostname" (ngModelChange)="save()"> {{ t('settings.hostname') }}</label>
+        <label><input type="checkbox" [(ngModel)]="options.showUptime" (ngModelChange)="save()"> {{ t('settings.uptime') }}</label>
         <label><input type="checkbox" [(ngModel)]="options.showCPU" (ngModelChange)="save()"> {{ t('settings.cpu') }}</label>
         <label><input type="checkbox" [(ngModel)]="options.showMemory" (ngModelChange)="save()"> {{ t('settings.memory') }}</label>
         <label><input type="checkbox" [(ngModel)]="options.showNetwork" (ngModelChange)="save()"> {{ t('settings.network') }}</label>
+        <label><input type="checkbox" [(ngModel)]="options.showConnections" (ngModelChange)="save()"> {{ t('settings.connections') }}</label>
         <label><input type="checkbox" [(ngModel)]="options.showDisks" (ngModelChange)="save()"> {{ t('settings.disks') }}</label>
       </div>
       <div class="form-check mb-3"><label><input type="checkbox" [(ngModel)]="options.showVirtualFilesystems" (ngModelChange)="save()"> {{ t('settings.virtual') }}</label></div>

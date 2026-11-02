@@ -10,6 +10,8 @@ async function main () {
         'preview-cpu.png': 'cpu-history.png',
         'preview-memory.png': 'memory-details.png',
         'preview-network.png': 'network-details.png',
+        'preview-uptime.png': 'uptime-details.png',
+        'preview-connections.png': 'connections-details.png',
         'preview-settings-appearance.png': 'appearance-dark.png',
         'preview-settings-light.png': 'appearance-light.png',
     }

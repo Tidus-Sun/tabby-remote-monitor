@@ -46,7 +46,7 @@ export class Monitor {
 
     start (): void { this.wake() }
     configure (options: MonitorOptions): void {
-        const samplingChanged = (['enabled', 'interval', 'diskInterval', 'timeout', 'pauseWhenHidden', 'interfaces', 'showDisks'] as const)
+        const samplingChanged = (['enabled', 'interval', 'diskInterval', 'timeout', 'pauseWhenHidden', 'interfaces', 'showDisks', 'showConnections'] as const)
             .some(key => this.options[key] !== options[key])
         this.options = options
         // Tabby's config event also covers unrelated preferences and display-only changes.
@@ -126,7 +126,7 @@ export class Monitor {
             let snapshot: Snapshot | undefined
             for (let attempt = 0; attempt < 2; attempt++) {
                 try {
-                    const result = await this.exec(connection.client, collectorCommand(includeDisks), this.options.timeout * 1000, controller.signal, { completionMarker: COLLECTOR_END })
+                    const result = await this.exec(connection.client, collectorCommand(includeDisks, this.options.showConnections), this.options.timeout * 1000, controller.signal, { completionMarker: COLLECTOR_END })
                     const latest = this.connection()
                     if (generation !== this.generation || this.stopped || latest?.identity !== connection.identity || !latest.open) return
                     snapshot = parseSnapshot(result.stdout)

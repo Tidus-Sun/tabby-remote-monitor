@@ -45,6 +45,16 @@ button:disabled { cursor: default; opacity: .4; }
 .panel[data-kind="network"] { width: min(540px, 100%); }
 .panel[data-kind="cpu"] { width: min(580px, 100%); }
 .panel[data-kind="memory"] { width: min(460px, 100%); }
+.panel[data-kind="uptime"] { width: min(460px, 100%); }
+.uptime-duration { color: var(--trm-accent); font-size: 20px; margin: 4px 0 14px; }
+.panel[data-kind="uptime"] .panel-body { padding-top: 12px; }
+.panel[data-kind="connections"] { width: min(600px, 100%); scrollbar-width: thin; scrollbar-color: var(--trm-scrollbar) transparent; }
+.connection-states { display: flex; flex-wrap: wrap; gap: 6px 10px; padding-bottom: 10px; }
+.connection-state { color: var(--trm-accent); background: var(--trm-accent-soft); border-radius: 3px; padding: 1px 6px; font-size: 12px; }
+.connections-table { min-width: 560px; table-layout: fixed; }
+.connections-table th:first-child { width: 120px; }
+.connections-table th:not(:first-child) { width: calc((100% - 120px) / 2); }
+.connections-table td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .panel-header { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; background: var(--trm-header-background); border-bottom: 1px solid var(--trm-divider); z-index: 1; }
 .panel-title { font-size: 16px; font-weight: 600; color: var(--trm-strong); }
 .panel-subtitle { color: var(--trm-muted); font-size: 12px; margin-top: 3px; }

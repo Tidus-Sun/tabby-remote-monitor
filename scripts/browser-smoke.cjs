@@ -6,6 +6,72 @@ const webpack = require('webpack')
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = path.resolve(__dirname, '..')
 
+async function checkUptimeClock (browser, url) {
+    const page = await browser.newPage({ viewport: { width: 1240, height: 740 } })
+    const errors = []
+    page.on('pageerror', error => errors.push(error.message))
+    try {
+        await page.goto(url)
+        const uptimeTrigger = page.getByRole('button', { name: '查看系统运行时长和启动时间' })
+        const connectionsTrigger = page.getByRole('button', { name: '查看 TCP 连接（已建立连接数）' })
+        const panel = page.locator('.tabby-remote-monitor .panel')
+        await page.clock.install()
+        await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000))
+        const uptimeSample = await page.evaluate(() => {
+            const { state, bar } = window.monitorPreview
+            const original = { updatedAt: state.updatedAt, seconds: state.metrics.uptime }
+            state.updatedAt = Date.now()
+            bar.update(state)
+            return original
+        })
+        assert.equal(await uptimeTrigger.locator('.value').innerText(), '12天 3时 42分')
+        await uptimeTrigger.hover()
+        assert.equal(await panel.locator('.uptime-duration').innerText(), '12 天 3 小时 42 分钟 8 秒')
+        assert.notEqual(await panel.locator('.boot-time').innerText(), '—')
+        const bootTime = await panel.locator('.boot-time').innerText()
+        await page.clock.runFor(1000)
+        assert.equal(await panel.locator('.uptime-duration').innerText(), '12 天 3 小时 42 分钟 9 秒', 'uptime ticks after one second without another SSH sample')
+        await page.clock.runFor(1000)
+        assert.equal(await panel.locator('.uptime-duration').innerText(), '12 天 3 小时 42 分钟 10 秒')
+        assert.equal(await page.evaluate(() => window.monitorPreview.state.metrics.uptime), uptimeSample.seconds, 'local display does not modify collected metrics')
+        assert.equal(await panel.locator('.boot-time').innerText(), bootTime, 'boot timestamp stays fixed')
+        for (const status of ['paused', 'error', 'hidden']) {
+            await page.evaluate(status => {
+                const { state, bar } = window.monitorPreview
+                state.status = status
+                state.paused = status === 'paused'
+                bar.update(state)
+            }, status)
+            const frozen = await panel.locator('.uptime-duration').innerText()
+            await page.clock.runFor(2000)
+            assert.equal(await panel.locator('.uptime-duration').innerText(), frozen, `${status} must freeze the sampled reading`)
+        }
+        await page.evaluate(() => {
+            const { state, bar } = window.monitorPreview
+            state.status = 'live'; state.paused = false
+            state.updatedAt = Date.now(); state.metrics.uptime = 10
+            bar.update(state)
+        })
+        assert.equal(await panel.locator('.uptime-duration').innerText(), '0 天 0 小时 0 分钟 10 秒', 'new samples recalibrate uptime after a restart')
+        await page.clock.runFor(1000)
+        assert.equal(await panel.locator('.uptime-duration').innerText(), '0 天 0 小时 0 分钟 11 秒')
+        await page.evaluate(sample => {
+            const { state, bar } = window.monitorPreview
+            state.updatedAt = sample.updatedAt; state.metrics.uptime = sample.seconds
+            bar.update(state)
+        }, uptimeSample)
+        assert.equal(await connectionsTrigger.locator('.value').innerText(), '2')
+        await connectionsTrigger.hover()
+        await page.clock.runFor(1000)
+        assert.equal(await panel.locator('.panel-title').innerText(), '网络连接', 'switching panels stops the uptime display timer')
+        await page.clock.resume()
+        await uptimeTrigger.focus()
+        await page.evaluate(() => window.monitorPreview.bar.destroy())
+        await page.clock.runFor(3000)
+        assert.deepEqual(errors, [], 'destroying the status bar releases its clock')
+    } finally { await page.close() }
+}
+
 async function main () {
     const output = path.join(root, '.artifacts')
     await fs.mkdir(output, { recursive: true })
@@ -31,11 +97,14 @@ Linux 6.8.0-55-generic
         const errors = []
         page.on('pageerror', error => errors.push(error.message))
         await page.goto(require('node:url').pathToFileURL(path.join(output, 'preview.html')).href)
+        await checkUptimeClock(browser, page.url())
         const mountTrigger = mount => page.getByRole('button', { name: `查看挂载点 ${mount} 的磁盘和系统信息`, exact: true })
         const diskTrigger = mountTrigger('/')
         const networkTrigger = page.getByRole('button', { name: '查看所有网络设备的流量总量' })
         const cpuTrigger = page.getByRole('button', { name: '查看 CPU 使用率历史' })
         const memoryTrigger = page.getByRole('button', { name: '查看内存使用详情' })
+        const uptimeTrigger = page.getByRole('button', { name: '查看系统运行时长和启动时间' })
+        const connectionsTrigger = page.getByRole('button', { name: '查看 TCP 连接（已建立连接数）' })
         const panel = page.locator('.tabby-remote-monitor .panel')
         const assertAnchored = async kind => {
             const rects = await page.evaluate(kind => {
@@ -55,7 +124,7 @@ Linux 6.8.0-55-generic
             bar.configure({ ...options, language: 'en' }, 'zh-CN')
         })
         assert.equal(await page.locator('.tabby-remote-monitor').getAttribute('lang'), 'en')
-        for (const [kind, title] of [['disk', 'Disk and system information'], ['memory', 'Memory usage'], ['network', 'Network traffic totals'], ['cpu', 'CPU usage']]) {
+        for (const [kind, title] of [['disk', 'Disk and system information'], ['memory', 'Memory usage'], ['network', 'Network traffic totals'], ['cpu', 'CPU usage'], ['uptime', 'System uptime'], ['connections', 'Connections']]) {
             await page.locator(`.tabby-remote-monitor .${kind}.details-trigger`).first().hover()
             await assertAnchored(kind)
             assert.equal(await panel.locator('.panel-title').innerText(), title)
@@ -65,7 +134,7 @@ Linux 6.8.0-55-generic
             await page.screenshot({ path: path.join(output, `preview-${kind}-en.png`), fullPage: true })
         }
         await page.setViewportSize({ width: 460, height: 740 })
-        for (const kind of ['disk', 'memory', 'network', 'cpu']) {
+        for (const kind of ['disk', 'memory', 'network', 'cpu', 'uptime', 'connections']) {
             await page.locator(`.tabby-remote-monitor .${kind}.details-trigger`).first().hover()
             await assertAnchored(kind)
             assert.equal(await panel.evaluate(node => node.scrollWidth > node.clientWidth), false, `English ${kind} panel fits narrow panes`)
@@ -124,6 +193,81 @@ Linux 6.8.0-55-generic
         await page.keyboard.press('Escape')
         await page.setViewportSize({ width: 1240, height: 740 })
         await page.locator('.bar').evaluate(node => { node.scrollLeft = 0 })
+        await page.evaluate(() => {
+            const { state, bar } = window.monitorPreview
+            state.updatedAt = Date.now()
+            bar.update(state)
+        })
+        await uptimeTrigger.hover()
+        await assertAnchored('uptime')
+        assert.match(await panel.locator('.uptime-duration').innerText(), /12 天 3 小时 42 分钟 \d+ 秒/)
+        await page.screenshot({ path: path.join(output, 'preview-uptime.png'), fullPage: true })
+        assert.equal(await connectionsTrigger.locator('.value').innerText(), '2')
+        await connectionsTrigger.hover()
+        await assertAnchored('connections')
+        assert.ok((await panel.boundingBox()).width <= 600, 'connections use a compact panel')
+        assert.deepEqual(await panel.getByRole('columnheader').allTextContents(), ['状态', '本地地址:端口', '远端地址:端口'])
+        assert.equal(await panel.locator('.connections-table tbody tr').count(), 4)
+        assert.match(await panel.innerText(), /\[2001:db8::2\]:53000/)
+        assert.equal(await panel.locator('.table-scroll').evaluate(node => node.scrollWidth > node.clientWidth), false, 'normal-width connections need no horizontal scrollbar')
+        assert.equal(await panel.locator('.connections-table tbody').evaluate(node => [...node.querySelectorAll('td')].some(cell => cell.scrollWidth > cell.clientWidth)), false, 'sample addresses and states fit their columns')
+        assert.equal(await panel.evaluate(node => node.scrollHeight > node.clientHeight), false, 'small connection tables need no vertical scrollbar')
+        await page.screenshot({ path: path.join(output, 'preview-connections.png'), fullPage: true })
+        const originalConnections = await page.evaluate(() => window.monitorPreview.state.metrics.connections)
+        await page.evaluate(() => {
+            const { state, bar } = window.monitorPreview
+            state.metrics.connections = { total: 100, established: 100, states: { ESTABLISHED: 100 }, entries: Array.from({ length: 100 }, (_, index) => ({
+                state: 'ESTABLISHED', local: '192.0.2.10:22', remote: `192.0.2.20:${50000 + index}`,
+            })) }
+            bar.update(state)
+        })
+        assert.equal(await panel.locator('.connections-table tbody tr').count(), 100)
+        assert.ok((await panel.boundingBox()).height <= 380, 'connection panel is capped at 380px')
+        assert.equal(await panel.evaluate(node => node.scrollHeight > node.clientHeight), true, 'large connection tables scroll vertically')
+        await panel.locator('.table-scroll').focus()
+        await page.locator('h1').hover()
+        await panel.evaluate(node => { node.scrollTop = 180 })
+        await page.evaluate(() => window.monitorPreview.bar.update(window.monitorPreview.state))
+        assert.equal(await panel.evaluate(node => node.scrollTop), 180, 'samples preserve the connection reading position')
+        await page.screenshot({ path: path.join(output, 'preview-connections-scrolling.png'), fullPage: true })
+        await panel.evaluate(node => { node.scrollTop = node.scrollHeight })
+        const finalRowVisible = await panel.locator('tbody tr').last().evaluate(row => {
+            const box = row.getBoundingClientRect()
+            const viewport = row.closest('.panel').getBoundingClientRect()
+            return box.top >= viewport.top && box.bottom <= viewport.bottom
+        })
+        assert.equal(finalRowVisible, true, 'scrolling reaches the final connection')
+        await page.evaluate(() => {
+            const { state, bar } = window.monitorPreview
+            state.metrics.connections = { total: 0, established: 0, states: {}, entries: [] }
+            bar.update(state)
+        })
+        assert.equal(await connectionsTrigger.locator('.value').innerText(), '0')
+        assert.match(await panel.innerText(), /没有 TCP 套接字/)
+        await page.evaluate(() => {
+            const { state, bar } = window.monitorPreview
+            state.metrics.connections = undefined
+            bar.update(state)
+        })
+        assert.equal(await connectionsTrigger.locator('.value').innerText(), '—')
+        assert.match(await panel.innerText(), /无法读取 TCP 连接/)
+        assert.equal(await page.locator('.tabby-remote-monitor').getAttribute('data-status'), 'live')
+        await connectionsTrigger.focus()
+        await page.locator('h1').hover()
+        await page.evaluate(connections => {
+            const { state, bar, options } = window.monitorPreview
+            state.metrics.connections = connections
+            bar.configure({ ...options, showUptime: false, showConnections: false })
+        }, originalConnections)
+        assert.equal(await uptimeTrigger.isVisible(), false)
+        assert.equal(await connectionsTrigger.isVisible(), false)
+        assert.equal(await panel.isHidden(), true, 'hiding an active indicator dismisses its popup')
+        await page.evaluate(() => window.monitorPreview.bar.configure(window.monitorPreview.options))
+        await connectionsTrigger.focus()
+        await page.locator('h1').hover()
+        assert.equal(await panel.isVisible(), true, 'keyboard focus opens connections')
+        await page.keyboard.press('Escape')
+        assert.equal(await panel.isHidden(), true)
         await diskTrigger.hover()
         await page.getByRole('cell', { name: '/mnt/backups' }).waitFor()
         await assertAnchored('disk')
@@ -140,7 +284,7 @@ Linux 6.8.0-55-generic
         assert.deepEqual(diskLayout.columns[0], diskLayout.columns[1], 'mounts, devices, filesystem types and numbers must share column positions')
         assert.ok(diskLayout.heights.every(height => Math.abs(height - 27) <= 1), 'disk rows should stay compact and uniform')
         assert.equal(diskLayout.overflows, false, 'capacity must be fully visible at normal width')
-        assert.equal(await page.locator('.tabby-remote-monitor .metric > svg.icon').count(), 11)
+        assert.equal(await page.locator('.tabby-remote-monitor .metric > svg.icon').count(), 13)
         assert.deepEqual(await page.locator('.disk-mount').allTextContents(), ['/', '/data', '/mnt/backups'])
         assert.deepEqual(await page.locator('.disk-value').allTextContents(), ['46%', '85%', '27%'])
         const labels = await page.locator('.tabby-remote-monitor .bar').innerText()
@@ -395,6 +539,10 @@ Linux 6.8.0-55-generic
         await memoryTrigger.hover()
         assert.equal(await panel.getByText('采集超时，稍后自动重试 · 以下为上次采样数据', { exact: true }).count(), 1)
         assert.equal(await panel.locator('.memory-capacity').innerText(), '6.4 GiB / 16.0 GiB')
+        // Clearing data changes indicator widths; keep keyboard focus on the
+        // panel under test instead of letting the pointer enter a neighbor.
+        await memoryTrigger.focus()
+        await page.locator('h1').hover()
         await page.evaluate(() => {
             const { bar, state } = window.monitorPreview
             state.metrics = undefined
@@ -404,6 +552,8 @@ Linux 6.8.0-55-generic
             bar.update(state)
         })
         assert.equal(await memoryTrigger.locator('.value').innerText(), '—')
+        assert.equal(await uptimeTrigger.locator('.value').innerText(), '—')
+        assert.equal(await connectionsTrigger.locator('.value').innerText(), '—')
         assert.equal(await panel.getByText('等待内存信息。', { exact: true }).count(), 1)
         assert.equal(await page.locator('.disk').count(), 1, 'no data keeps a single disk placeholder')
         assert.equal(await page.locator('.disk-value').innerText(), '—')

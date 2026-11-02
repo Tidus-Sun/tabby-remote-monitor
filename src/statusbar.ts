@@ -7,15 +7,18 @@ import { CPU_HISTORY_WINDOW, cpuHistorySegments } from './history'
 import { resolveLanguage, translate } from './i18n'
 import type { Language, MessageKey, TranslationParams } from './i18n'
 import { appearanceVariables } from './appearance'
+import { formatUptime } from './uptime'
 
 const stylesheet: string = require('./statusbar.css')
 const template = `
 <div class="shell">
   <div class="bar" role="group" data-i18n-aria="app.label">
     <div class="metric host"><span class="dot"></span>${icon('host')}<span class="host-text">Remote monitor</span></div>
+    <button class="metric uptime reading details-trigger" type="button" aria-expanded="false" aria-controls="monitor-details" data-i18n-aria="uptime.trigger">${icon('uptime')}<span class="value">—</span></button>
     <button class="metric cpu reading details-trigger" type="button" aria-expanded="false" aria-controls="monitor-details" data-i18n-aria="cpu.trigger">${icon('cpu')}<span class="value">—</span><span class="cpu-sparkline" aria-hidden="true"></span></button>
     <button class="metric memory reading details-trigger" type="button" aria-expanded="false" aria-controls="monitor-details" data-i18n-aria="memory.trigger">${icon('memory')}<span class="value">—</span><span class="meter" aria-hidden="true"><span class="fill"></span></span></button>
     <button class="metric network reading details-trigger" type="button" aria-expanded="false" aria-controls="monitor-details" data-i18n-aria="network.trigger">${icon('download', 'download')}<span class="rx">—</span>${icon('upload', 'upload')}<span class="tx">—</span></button>
+    <button class="metric connections reading details-trigger" type="button" aria-expanded="false" aria-controls="monitor-details" data-i18n-aria="connections.trigger">${icon('connections')}<span class="value">—</span></button>
     <div class="disks" role="group" data-i18n-aria="disk.group"></div>
     <span class="message" role="status"></span>
   </div>
@@ -26,7 +29,7 @@ const template = `
   <div class="panel-body"></div>
 </section>`
 
-const panelKinds = ['disk', 'network', 'cpu', 'memory'] as const
+const panelKinds = ['disk', 'network', 'cpu', 'memory', 'uptime', 'connections'] as const
 type PanelKind = typeof panelKinds[number]
 
 export class StatusBar {
@@ -39,6 +42,8 @@ export class StatusBar {
     private activeTrigger?: HTMLElement
     private diskTriggers = new Map<string | undefined, HTMLButtonElement>()
     private closeTimer?: ReturnType<typeof setTimeout>
+    private uptimeTimer?: ReturnType<typeof setInterval>
+    private uptimeSample?: { timestamp: number | undefined; seconds: number; receivedAt: number }
     private resizeObserver: ResizeObserver
     private suppressFocusOpen = false
     private dismissedHoverTrigger?: HTMLElement
@@ -69,7 +74,8 @@ export class StatusBar {
         panel.style.left = `${left}px`
         panel.style.bottom = `${host.bottom - anchor.top + 6}px`
         const paneTop = this.element.parentElement?.getBoundingClientRect().top ?? 0
-        panel.style.maxHeight = `${Math.max(0, anchor.top - Math.max(0, paneTop) - 6)}px`
+        const availableHeight = Math.max(0, anchor.top - Math.max(0, paneTop) - 6)
+        panel.style.maxHeight = `${Math.min(availableHeight, this.activePanel === 'connections' ? 380 : Infinity)}px`
     }
 
     constructor (host: HTMLElement, options: MonitorOptions, pause: () => void, refresh: () => void, private hostLocale?: string) {
@@ -110,6 +116,30 @@ export class StatusBar {
     private t (key: MessageKey, params?: TranslationParams): string { return translate(this.language, key, params) }
     private timestamp (time?: number): string { return time ? new Date(time).toLocaleTimeString(this.language) : this.t('status.noSample') }
     private message (state: MonitorState): string { return state.messageKey ? this.t(state.messageKey, state.messageParams) : state.message }
+    private displayedUptime (): number | undefined {
+        const seconds = this.state?.metrics?.uptime
+        if (seconds === undefined || !this.uptimeSample || this.state?.status !== 'live' || this.state.paused) return seconds
+        // Monotonic elapsed time avoids jumps if the local wall clock changes.
+        return seconds + Math.max(0, performance.now() - this.uptimeSample.receivedAt) / 1000
+    }
+    private refreshUptimeText (): void {
+        this.text('.uptime .value', formatUptime(this.displayedUptime(), this.language))
+        if (this.activePanel === 'uptime' && this.state?.metrics) {
+            this.text('.uptime-duration', formatUptime(this.displayedUptime(), this.language, true))
+        }
+    }
+    private syncUptimeTimer (): void {
+        const running = this.activePanel === 'uptime' && this.options.enabled && this.options.showUptime
+            && this.state?.status === 'live' && !this.state.paused && !!this.state.metrics
+        if (running && this.uptimeTimer === undefined) {
+            // Only update text while this popup is open; do not resample SSH or
+            // rebuild the panel (selection/focus and the boot date stay intact).
+            this.uptimeTimer = setInterval(() => this.refreshUptimeText(), 1000)
+        } else if (!running) {
+            clearInterval(this.uptimeTimer)
+            this.uptimeTimer = undefined
+        }
+    }
     private bindTrigger (kind: PanelKind, trigger: HTMLElement): void {
         trigger.addEventListener('mouseenter', () => { if (this.dismissedHoverTrigger !== trigger) this.openPanel(kind, trigger) })
         trigger.addEventListener('mouseleave', () => {
@@ -177,7 +207,7 @@ export class StatusBar {
             this.root.querySelectorAll(`[${attribute}]`).forEach(node => node.setAttribute(target, this.t(node.getAttribute(attribute) as MessageKey)))
         }
         this.element.style.display = options.enabled ? '' : 'none'
-        for (const [selector, enabled] of [['.host', options.showHostname], ['.cpu', options.showCPU], ['.memory', options.showMemory], ['.network', options.showNetwork], ['.disks', options.showDisks]] as const) {
+        for (const [selector, enabled] of [['.host', options.showHostname], ['.uptime', options.showUptime], ['.cpu', options.showCPU], ['.memory', options.showMemory], ['.network', options.showNetwork], ['.connections', options.showConnections], ['.disks', options.showDisks]] as const) {
             this.query(selector).hidden = !enabled
         }
         if (!options.enabled || this.activeTrigger?.closest('[hidden]')) this.closePanel()
@@ -191,6 +221,10 @@ export class StatusBar {
     }
 
     update (state: MonitorState): void {
+        if (!state.metrics) this.uptimeSample = undefined
+        else if (!this.uptimeSample || this.uptimeSample.timestamp !== state.updatedAt || this.uptimeSample.seconds !== state.metrics.uptime) {
+            this.uptimeSample = { timestamp: state.updatedAt, seconds: state.metrics.uptime, receivedAt: performance.now() }
+        }
         this.state = state
         this.element.dataset.status = state.status
         const live = state.status === 'live'
@@ -206,6 +240,8 @@ export class StatusBar {
         this.query('.pause').title = pauseText
         const metrics = state.metrics
         this.text('.host-text', metrics?.hostname ?? 'Remote monitor')
+        this.text('.uptime .value', formatUptime(this.displayedUptime(), this.language))
+        this.text('.connections .value', metrics?.connections?.established.toLocaleString(this.language) ?? '—')
         this.query('.host').title = metrics ? this.t('host.uptime', { host: metrics.hostname, days: Math.floor(metrics.uptime / 86400), hours: Math.floor(metrics.uptime % 86400 / 3600) }) : this.message(state)
         this.percentage('.cpu', metrics?.cpuPercent ?? null)
         this.percentage('.memory', metrics?.memory.percent ?? null)
@@ -220,6 +256,7 @@ export class StatusBar {
             this.renderPanel()
             this.positionPanel()
         }
+        this.syncUptimeTimer()
     }
 
     private openPanel (kind: PanelKind, trigger: HTMLElement): void {
@@ -235,6 +272,7 @@ export class StatusBar {
         this.root.querySelectorAll('.details-trigger').forEach(item => item.setAttribute('aria-expanded', String(item === trigger)))
         this.renderPanel()
         this.positionPanel()
+        this.syncUptimeTimer()
         if (changed) panel.scrollTop = 0
     }
 
@@ -257,6 +295,7 @@ export class StatusBar {
         // event. An explicit dismissal stays closed until the pointer leaves.
         if (restoreFocus) this.dismissedHoverTrigger = previous
         this.activePanel = undefined
+        this.syncUptimeTimer()
         this.activeTrigger = undefined
         this.query('.panel').hidden = true
         this.root.querySelectorAll('.details-trigger').forEach(trigger => trigger.setAttribute('aria-expanded', 'false'))
@@ -296,6 +335,56 @@ export class StatusBar {
             return node
         }
         if (state && state.status !== 'live') add('div', body, `${this.message(state)}${metrics ? this.t('status.previousDetails') : ''}`, 'info warning')
+        if (this.activePanel === 'connections') {
+            this.text('.panel-title', this.t('connections.title'))
+            this.text('.panel-subtitle', this.t('connections.subtitle', { host: metrics?.hostname ?? 'Linux' }))
+            const connections = metrics?.connections
+            if (!connections) {
+                add('div', body, this.t(metrics ? 'connections.unavailable' : 'connections.waiting'), 'empty')
+                return
+            }
+            const stats = add('div', body, '', 'cpu-stats')
+            for (const [label, value] of [['connections.total', connections.total], ['connections.established', connections.established], ['connections.listening', connections.states.LISTEN ?? 0]] as const) {
+                const stat = add('div', stats, '')
+                add('div', stat, this.t(label), 'stat-label')
+                add('div', stat, value.toLocaleString(this.language), 'stat-value')
+            }
+            const counts = add('div', body, '', 'connection-states')
+            for (const [name, count] of Object.entries(connections.states).sort(([a], [b]) => a.localeCompare(b))) {
+                add('span', counts, `${name} ${count.toLocaleString(this.language)}`, 'connection-state')
+            }
+            if (connections.entries.length) {
+                const scroller = add('div', body, '', 'table-scroll')
+                scroller.tabIndex = 0
+                scroller.setAttribute('role', 'region')
+                scroller.setAttribute('aria-label', this.t('connections.table'))
+                const table = add('table', scroller, '', 'connections-table')
+                const header = add('tr', add('thead', table, ''), '')
+                for (const key of ['connections.state', 'connections.local', 'connections.remote'] as const) add('th', header, this.t(key))
+                const tbody = add('tbody', table, '')
+                for (const entry of connections.entries) {
+                    const row = add('tr', tbody, '')
+                    for (const value of [entry.state, entry.local, entry.remote]) add('td', row, value).title = value
+                }
+            } else add('div', body, this.t('connections.empty'), 'empty')
+            if (connections.total > connections.entries.length) add('div', body, this.t('connections.limited', { shown: connections.entries.length, total: connections.total }), 'info')
+            add('div', body, this.t('connections.footnote', { time: this.timestamp(state?.updatedAt) }), 'footnote')
+            return
+        }
+        if (this.activePanel === 'uptime') {
+            this.text('.panel-title', this.t('uptime.title'))
+            this.text('.panel-subtitle', this.t('uptime.subtitle', { host: metrics?.hostname ?? 'Linux' }))
+            if (!metrics) {
+                add('div', body, this.t('uptime.waiting'), 'empty')
+                return
+            }
+            add('div', body, this.t('uptime.elapsed'), 'stat-label')
+            add('div', body, formatUptime(this.displayedUptime(), this.language, true), 'uptime-duration')
+            add('div', body, this.t('uptime.boot'), 'stat-label')
+            add('div', body, metrics.bootTime ? new Date(metrics.bootTime).toLocaleString(this.language, { timeZoneName: 'short' }) : '—', 'boot-time')
+            add('div', body, this.t('uptime.footnote', { time: this.timestamp(state?.updatedAt) }), 'footnote')
+            return
+        }
         if (this.activePanel === 'memory') {
             this.text('.panel-title', this.t('memory.title'))
             this.text('.panel-subtitle', this.t('memory.subtitle', { host: metrics?.hostname ?? 'Linux' }))
@@ -444,6 +533,7 @@ export class StatusBar {
 
     destroy (): void {
         clearTimeout(this.closeTimer)
+        clearInterval(this.uptimeTimer)
         this.resizeObserver.disconnect()
         this.element.ownerDocument.removeEventListener('pointerdown', this.outsideClick)
         this.element.ownerDocument.defaultView?.removeEventListener('resize', this.positionPanel)

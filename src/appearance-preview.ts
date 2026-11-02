@@ -2,7 +2,7 @@ import type { MonitorOptions } from './options'
 import type { MonitorState } from './monitor'
 import { StatusBar } from './statusbar'
 
-/** Local, clearly labeled sample data for the settings preview. No SSH or timers. */
+/** Local, clearly labeled sample data for the settings preview. No SSH sampling. */
 function sampleState (): MonitorState {
     const now = Date.now()
     const gib = 1024 ** 3
@@ -11,7 +11,11 @@ function sampleState (): MonitorState {
         status: 'live', message: '', messageKey: 'status.live', paused: false, diskError: false, updatedAt: now, disksUpdatedAt: now,
         cpuHistory: values.map((value, index) => ({ time: now - (values.length - 1 - index) * 4000, value })),
         metrics: {
-            hostname: 'demo-linux', uptime: 86400 * 3, cpu: { total: 1000, idle: 770 }, cpuPercent: 23,
+            hostname: 'demo-linux', uptime: 86400 * 3, bootTime: now - 86400 * 3000, cpu: { total: 1000, idle: 770 }, cpuPercent: 23,
+            connections: { total: 2, established: 1, states: { ESTABLISHED: 1, LISTEN: 1 }, entries: [
+                { state: 'ESTABLISHED', local: '192.0.2.10:22', remote: '192.0.2.20:52048' },
+                { state: 'LISTEN', local: '0.0.0.0:22', remote: '0.0.0.0:*' },
+            ] },
             memory: { total: 8 * gib, used: 3.2 * gib, percent: 40, available: 4.8 * gib, availableEstimated: false,
                 free: 3 * gib, buffers: .1 * gib, cached: 1.6 * gib, reclaimable: .2 * gib, shared: .1 * gib,
                 swapTotal: 2 * gib, swapUsed: .1 * gib, swapFree: 1.9 * gib },
@@ -36,7 +40,7 @@ export class AppearancePreview {
         this.bar.update(this.state)
     }
     private previewOptions (options: MonitorOptions): MonitorOptions {
-        return { ...options, enabled: true, showHostname: true, showCPU: true, showMemory: true, showNetwork: true, showDisks: true }
+        return { ...options, enabled: true, showHostname: true, showUptime: true, showCPU: true, showMemory: true, showNetwork: true, showConnections: true, showDisks: true }
     }
     configure (options: MonitorOptions, hostLocale: string): void { this.bar.configure(this.previewOptions(options), hostLocale) }
     destroy (): void { this.bar.destroy() }

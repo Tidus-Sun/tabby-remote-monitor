@@ -29,10 +29,10 @@ Angular、Tabby、RxJS 是宿主提供的运行依赖，生产打包保留 exter
 | `pnpm build` | Electron renderer 生产构建 |
 | `pnpm check` | 依次执行上面三项 |
 | `pnpm test:browser` | 真实状态栏组件与 Angular 设置组件的浏览器测试 |
-| `pnpm screenshots` | 将上一轮浏览器测试的六张示例截图复制到 `docs/images` |
+| `pnpm screenshots` | 将上一轮浏览器测试的八张示例截图复制到 `docs/images` |
 | `pnpm pack` | 构建并生成可安装的 `.tgz` 包，不上传到 npm |
 
-当前共有 39 项 Node 测试。在有 Git Bash 的 Windows 上，默认通过 37 项，跳过 2 项需要 Tabby russh 的测试；Linux / macOS 另外跳过 Windows 专用安装测试。缺少 POSIX shell 时采集脚本测试会明确跳过。浏览器测试独立运行，不计入这 39 项。
+当前共有 44 项 Node 测试。在有 Git Bash 的 Windows 上，默认通过 41 项，跳过 2 项需要 Tabby russh 的测试及 1 项 Linux 实机采集测试；Linux / macOS 跳过 Windows 专用安装测试。Linux 还会对真实 `/proc` 和测试创建的回环 TCP 连接验证采集结果，需提供 `ss` 或支持 `-antW` 的 `netstat`。缺少 POSIX shell 时采集脚本测试会明确跳过。浏览器测试独立运行，不计入这 44 项。
 
 对已安装 Tabby 的 Windows 机器，可补测宿主原生 SSH 后端：
 
